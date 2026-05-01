@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>PUT Smart Dashboard</title>
+
+<style>
+body { background:#0f172a; color:white; font-family:Arial; }
+.container { max-width:1200px; margin:auto; padding:20px; }
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.box { background:#1e293b; padding:20px; border-radius:12px; }
+input, button { width:100%; padding:8px; margin:6px 0; border:none; border-radius:6px; }
+button { background:#22c55e; color:white; cursor:pointer; }
+.bar { height:20px; border-radius:10px; margin-top:10px; }
+h1 { margin-bottom:20px; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>📊 PUT Smart Dashboard</h1>
+
+<button onclick="aggiornaDati()">🔄 Refresh</button>
+
+<div class="grid">
+
+<div class="box">
+<h2>📥 Dati</h2>
+<input id="symbol" value="SPY">
+<input id="S" placeholder="Prezzo">
+<input id="K" value="410">
+<input id="T" value="30">
+<input id="vol" placeholder="Volatilità live">
+<input id="rsi" placeholder="RSI">
+<input id="trend" placeholder="Trend">
+</div>
+
+<div class="box">
+<h2>🛡️ Sicurezza</h2>
+<div id="sicurezza"></div>
+<div id="bar" class="bar"></div>
+</div>
+
+<div class="box">
+<h2>📊 Analisi</h2>
+<div id="analisi"></div>
+</div>
+
+<div class="box">
+<h2>🤖 Segnale</h2>
+<div id="signal"></div>
+</div>
+
+<div class="box">
+<h2>🏆 Migliori PUT</h2>
+<div id="best"></div>
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const API_KEY = "BZA9QRHAZCY7I419";
+
+// NORMAL
+function erf(x){
+let sign = x>=0?1:-1;
+x=Math.abs(x);
+let a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
+let t=1/(1+p*x);
+let y=1-(((((a5*t+a4)*t+a3)*t+a2)*t+a1)*t*Math.exp(-x*x));
+return sign*y;
+}
+function N(x){ return (1+erf(x/Math.sqrt(2)))/2; }
+
+
+// 🔄 FETCH DATI
+async function aggiornaDati(){
+
+let symbol = document.getElementById("symbol").value;
+
+// PREZZO
+let res = await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}`);
+let data = await res.json();
+let S = data.quoteResponse.result[0].regularMarketPrice;
+document.getElementById("S").value = S.toFixed(2);
+
+// RSI + EMA
+let rsiRes = await fetch(`https://www.alphavantage.co/query?function=RSI&symbol=${symbol}&interval=daily&time_period=14&series_type=close&apikey=${API_KEY}`);
+let rsiData = await rsiRes.json();
+
+let rsiVal = Object.values(rsiData["Technical Analysis: RSI"])[0]["RSI"];
+document.getElementById("rsi").value = parseFloat(rsiVal).toFixed(2);
+
+// EMA 50
+let emaRes = await fetch(`https://www.alphavantage.co/query?function=EMA&symbol=${symbol}&interval=daily&time_period=50&series_type=close&apikey=${API_KEY}`);
+let emaData = await emaRes.json();
+
+let ema50 = Object.values(emaData["Technical Analysis: EMA"])[0]["EMA"];
+
+// TREND
+let trend = S > ema50 ? "BULLISH" : "BEARISH";
+document.getElementById("trend").value = trend;
+
+// VOLATILITÀ STIMATA (semplice)
+let vol = Math.abs(S - ema50) / S * 100 * 2;
+document.getElementById("vol").value = vol.toFixed(2);
+
+calcola();
+}
+
+
+// CALCOLO
+function calcola(){
+
+let S = +document.getElementById("S").value;
+let K = +document.getElementById("K").value;
+let T = +document.getElementById("T").value / 365;
+let vol = +document.getElementById("vol").value / 100;
+let rsi = +document.getElementById("rsi").value;
+let trend = document.getElementById("trend").value;
+
+// distanza
+let distanza = ((S-K)/S)*100;
+
+// probabilità
+let d2 = (Math.log(S/K)-0.5*vol*vol*T)/(vol*Math.sqrt(T));
+let probSafe = 1 - N(-d2);
+
+// sicurezza
+let stato = distanza > 5 ? "🟢 Safe" : distanza > 3 ? "🟡 Medio" : "🔴 Rischio";
+
+// barra
+let risk = 100 - distanza*10;
+risk = Math.max(0, Math.min(100, risk));
+
+let bar = document.getElementById("bar");
+bar.style.width = risk+"%";
+bar.style.background = risk > 60 ? "red" : risk > 30 ? "orange" : "green";
+
+// SEGNALE
+let signal = "⚠️ WAIT";
+
+if(trend==="BULLISH" && rsi < 65 && probSafe > 0.7){
+  signal = "🟢 SELL PUT";
+}
+else if(rsi > 70){
+  signal = "🔴 NO TRADE";
+}
+
+// OUTPUT
+document.getElementById("sicurezza").innerHTML = `
+Distanza: ${distanza.toFixed(2)}%<br>${stato}
+`;
+
+document.getElementById("analisi").innerHTML = `
+Probabilità SAFE: ${(probSafe*100).toFixed(2)}%<br>
+RSI: ${rsi}<br>
+Trend: ${trend}<br>
+Vol: ${(vol*100).toFixed(2)}%
+`;
+
+document.getElementById("signal").innerHTML = `
+<h2>${signal}</h2>
+`;
+
+// migliori put
+trovaPut(S, vol, T, rsi);
+}
+
+
+// AI PUT
+function trovaPut(S, vol, T, rsi){
+
+let risultati = [];
+
+for(let i=1;i<=10;i++){
+
+let K = S*(1 - i*0.01);
+let distanza = ((S-K)/S)*100;
+
+let d2 = (Math.log(S/K)-0.5*vol*vol*T)/(vol*Math.sqrt(T));
+let probSafe = 1 - N(-d2);
+
+let score = (probSafe*100) - distanza*2 + (rsi<40?10:0);
+
+risultati.push({
+strike: K.toFixed(0),
+prob: (probSafe*100).toFixed(1),
+dist: distanza.toFixed(2),
+score: score
+});
+}
+
+risultati.sort((a,b)=>b.score-a.score);
+
+let html="";
+risultati.slice(0,3).forEach(p=>{
+html+=`<div><b>${p.strike}</b> | ${p.prob}% | ${p.dist}%</div>`;
+});
+
+document.getElementById("best").innerHTML = html;
+}
+
+</script>
+
+</body>
+</html>
