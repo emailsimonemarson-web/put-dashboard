@@ -32,7 +32,7 @@ h1 { margin-bottom:20px; }
 <input id="S" placeholder="Prezzo">
 <input id="K" value="410">
 <input id="T" value="30">
-<input id="vol" placeholder="Volatilità live">
+<input id="vol" placeholder="Volatilità (VIX)">
 <input id="rsi" placeholder="RSI">
 <input id="trend" placeholder="Trend">
 </div>
@@ -59,14 +59,11 @@ h1 { margin-bottom:20px; }
 </div>
 
 </div>
-
 </div>
 
 <script>
 
-const API_KEY = "BZA9QRHAZCY7I419";
-
-// NORMAL
+// NORMAL DISTRIBUTION
 function erf(x){
 let sign = x>=0?1:-1;
 x=Math.abs(x);
@@ -78,43 +75,42 @@ return sign*y;
 function N(x){ return (1+erf(x/Math.sqrt(2)))/2; }
 
 
-// 🔄 FETCH DATI
+// 🔄 DATI AUTOMATICI
 async function aggiornaDati(){
+try {
 
 let symbol = document.getElementById("symbol").value;
 
-// PREZZO
+// 📊 PREZZO SP500
 let res = await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}`);
 let data = await res.json();
 let S = data.quoteResponse.result[0].regularMarketPrice;
 document.getElementById("S").value = S.toFixed(2);
 
-// RSI + EMA
-let rsiRes = await fetch(`https://www.alphavantage.co/query?function=RSI&symbol=${symbol}&interval=daily&time_period=14&series_type=close&apikey=${API_KEY}`);
-let rsiData = await rsiRes.json();
+// 📉 VIX
+let vixRes = await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5EVIX`);
+let vixData = await vixRes.json();
+let vix = vixData.quoteResponse.result[0].regularMarketPrice;
+document.getElementById("vol").value = vix.toFixed(2);
 
-let rsiVal = Object.values(rsiData["Technical Analysis: RSI"])[0]["RSI"];
-document.getElementById("rsi").value = parseFloat(rsiVal).toFixed(2);
+// 🔢 RSI (simulato realistico)
+let rsi = 50 + (Math.random()*20 - 10);
+document.getElementById("rsi").value = rsi.toFixed(2);
 
-// EMA 50
-let emaRes = await fetch(`https://www.alphavantage.co/query?function=EMA&symbol=${symbol}&interval=daily&time_period=50&series_type=close&apikey=${API_KEY}`);
-let emaData = await emaRes.json();
-
-let ema50 = Object.values(emaData["Technical Analysis: EMA"])[0]["EMA"];
-
-// TREND
-let trend = S > ema50 ? "BULLISH" : "BEARISH";
+// 📈 TREND
+let trend = rsi > 55 ? "BULLISH" : rsi < 45 ? "BEARISH" : "SIDEWAYS";
 document.getElementById("trend").value = trend;
 
-// VOLATILITÀ STIMATA (semplice)
-let vol = Math.abs(S - ema50) / S * 100 * 2;
-document.getElementById("vol").value = vol.toFixed(2);
-
+// CALCOLO
 calcola();
+
+} catch (err) {
+console.log("Errore:", err);
+}
 }
 
 
-// CALCOLO
+// 📊 CALCOLO PRINCIPALE
 function calcola(){
 
 let S = +document.getElementById("S").value;
@@ -164,16 +160,14 @@ Trend: ${trend}<br>
 Vol: ${(vol*100).toFixed(2)}%
 `;
 
-document.getElementById("signal").innerHTML = `
-<h2>${signal}</h2>
-`;
+document.getElementById("signal").innerHTML = `<h2>${signal}</h2>`;
 
 // migliori put
 trovaPut(S, vol, T, rsi);
 }
 
 
-// AI PUT
+// 🏆 TROVA MIGLIORI PUT
 function trovaPut(S, vol, T, rsi){
 
 let risultati = [];
@@ -206,55 +200,11 @@ html+=`<div><b>${p.strike}</b> | ${p.prob}% | ${p.dist}%</div>`;
 document.getElementById("best").innerHTML = html;
 }
 
-</script>
-<script>
-async function aggiornaDati() {
-    try {
-        // SP500 (Yahoo via proxy pubblico)
-        const res = await fetch("https://query1.finance.yahoo.com/v7/finance/quote?symbols=SPY");
-        const data = await res.json();
 
-        const prezzo = data.quoteResponse.result[0].regularMarketPrice;
-        document.querySelectorAll("input")[1].value = prezzo;
-
-        // VOLATILITÀ (VIX)
-        const vixRes = await fetch("https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5EVIX");
-        const vixData = await vixRes.json();
-
-        const vix = vixData.quoteResponse.result[0].regularMarketPrice;
-        document.querySelectorAll("input")[4].value = vix;
-
-        // RSI simulato semplice
-        const rsi = Math.floor(Math.random() * 40) + 30;
-        document.querySelectorAll("input")[5].value = rsi;
-
-        // Trend base
-        const trend = rsi > 55 ? "Rialzista" : rsi < 45 ? "Ribassista" : "Laterale";
-        document.querySelectorAll("input")[6].value = trend;
-
-        // SICUREZZA
-        let sicurezza = "";
-        if (vix < 15) sicurezza = "🔥 MOLTO SICURO";
-        else if (vix < 20) sicurezza = "✅ SICURO";
-        else if (vix < 25) sicurezza = "⚠️ ATTENZIONE";
-        else sicurezza = "❌ RISCHIOSO";
-
-        document.querySelector(".box:nth-child(2)").innerHTML = "<h2>🛡 Sicurezza</h2><p>" + sicurezza + "</p>";
-
-        // SEGNALE
-        let segnale = "";
-        if (trend === "Rialzista" && vix < 20) segnale = "💰 VENDI PUT";
-        else segnale = "⛔ ASPETTA";
-
-        document.querySelector(".box:nth-child(4)").innerHTML = "<h2>🤖 Segnale</h2><p>" + segnale + "</p>";
-
-    } catch (err) {
-        console.log("Errore dati:", err);
-    }
-}
-
-// AUTO REFRESH ogni 30 sec
+// AUTO REFRESH
 setInterval(aggiornaDati, 30000);
+
 </script>
+
 </body>
 </html>
