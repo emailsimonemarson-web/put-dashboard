@@ -98,21 +98,21 @@ h1 {
 <script>
 async function aggiornaDati() {
     try {
-        // 📊 SP500 (SPY)
-        const res = await fetch("https://corsproxy.io/?https://query1.finance.yahoo.com/v7/finance/quote?symbols=SPY");
+        // 🔥 QUI USIAMO IL TUO BACKEND (VERCEL)
+        const res = await fetch("https://put-dashboard.vercel.app/api/market");
         const data = await res.json();
 
-        const prezzo = data.quoteResponse.result[0].regularMarketPrice;
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        const prezzo = data.prezzo;
+        const vix = data.vix;
+
         document.getElementById("prezzo").value = prezzo.toFixed(2);
+        document.getElementById("vix").value = vix !== "N/A" ? vix.toFixed(2) : "N/A";
 
-        // 📉 VIX (volatilità)
-        const vixRes = await fetch("https://corsproxy.io/?https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5EVIX");
-        const vixData = await vixRes.json();
-
-        const vix = vixData.quoteResponse.result[0].regularMarketPrice;
-        document.getElementById("vix").value = vix.toFixed(2);
-
-        // 📊 RSI simulato (temporaneo)
+        // 📊 RSI simulato (poi lo miglioriamo)
         const rsi = Math.floor(Math.random() * 30) + 40;
         document.getElementById("rsi").value = rsi;
 
@@ -127,10 +127,14 @@ async function aggiornaDati() {
 
         // 🛡 Sicurezza
         let sicurezza = "";
-        if (vix < 15) sicurezza = "🔥 MOLTO SICURO";
-        else if (vix < 20) sicurezza = "✅ SICURO";
-        else if (vix < 25) sicurezza = "⚠️ ATTENZIONE";
-        else sicurezza = "❌ RISCHIOSO";
+        if (vix !== "N/A") {
+            if (vix < 15) sicurezza = "🔥 MOLTO SICURO";
+            else if (vix < 20) sicurezza = "✅ SICURO";
+            else if (vix < 25) sicurezza = "⚠️ ATTENZIONE";
+            else sicurezza = "❌ RISCHIOSO";
+        } else {
+            sicurezza = "⚠️ VIX non disponibile";
+        }
 
         document.getElementById("sicurezza").innerHTML =
             "<h2>🛡 Sicurezza</h2><p>"+sicurezza+"</p>";
@@ -162,7 +166,7 @@ async function aggiornaDati() {
             "Strategia: Cash Secured PUT</p>";
 
     } catch (error) {
-        alert("Errore dati (proxy momentaneamente non disponibile)");
+        alert("Errore dati backend");
         console.log(error);
     }
 }
