@@ -1,26 +1,31 @@
 export default async function handler(req, res) {
+  try {
+    // SP500 (SPY)
+    const spyRes = await fetch(
+      "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=SPY&apikey=BZA9QRHAZCY7I419"
+    );
+    const spyData = await spyRes.json();
 
-    try {
-        // SP500 (SPY)
-        const yahoo = await fetch(
-            "https://query1.finance.yahoo.com/v7/finance/quote?symbols=SPY"
-        ).then(r => r.json());
+    const prezzo = parseFloat(
+      spyData["Global Quote"]["05. price"]
+    );
 
-        const prezzo = yahoo.quoteResponse.result[0].regularMarketPrice;
+    // VIX
+    const vixRes = await fetch(
+      "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=^VIX&apikey=BZA9QRHAZCY7I419"
+    );
+    const vixData = await vixRes.json();
 
-        // VIX
-        const vixData = await fetch(
-            "https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5EVIX"
-        ).then(r => r.json());
+    const vix = parseFloat(
+      vixData["Global Quote"]["05. price"]
+    );
 
-        const vix = vixData.quoteResponse.result[0].regularMarketPrice;
+    res.status(200).json({
+      prezzo,
+      vix
+    });
 
-        res.status(200).json({
-            prezzo,
-            vix
-        });
-
-    } catch (err) {
-        res.status(500).json({ error: "Errore dati" });
-    }
+  } catch (err) {
+    res.status(500).json({ error: "Errore dati API" });
+  }
 }
