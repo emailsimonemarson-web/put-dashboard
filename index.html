@@ -69,8 +69,8 @@ h1 {
 <h2>📊 Dati</h2>
 <input id="symbol" value="SPY">
 <input id="prezzo" placeholder="Prezzo">
-<input id="strike" value="410">
-<input id="days" value="30">
+<input value="410">
+<input value="30">
 <input id="vix" placeholder="Volatilità (VIX)">
 <input id="rsi" placeholder="RSI">
 <input id="trend" placeholder="Trend">
@@ -97,27 +97,26 @@ h1 {
 
 <script>
 async function aggiornaDati() {
-
     try {
-        // 🔥 SP500 (SPY)
-        const res = await fetch("https://api.allorigins.win/raw?url=https://query1.finance.yahoo.com/v7/finance/quote?symbols=SPY");
+        // 📊 SP500 (SPY)
+        const res = await fetch("https://corsproxy.io/?https://query1.finance.yahoo.com/v7/finance/quote?symbols=SPY");
         const data = await res.json();
 
         const prezzo = data.quoteResponse.result[0].regularMarketPrice;
         document.getElementById("prezzo").value = prezzo.toFixed(2);
 
-        // 🔥 VIX (VOLATILITÀ)
-        const vixRes = await fetch("https://api.allorigins.win/raw?url=https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5EVIX");
+        // 📉 VIX (volatilità)
+        const vixRes = await fetch("https://corsproxy.io/?https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5EVIX");
         const vixData = await vixRes.json();
 
         const vix = vixData.quoteResponse.result[0].regularMarketPrice;
         document.getElementById("vix").value = vix.toFixed(2);
 
-        // 🔥 RSI (simulato migliorato)
+        // 📊 RSI simulato (temporaneo)
         const rsi = Math.floor(Math.random() * 30) + 40;
         document.getElementById("rsi").value = rsi;
 
-        // 🔥 TREND
+        // 📈 Trend
         let trend = "";
         if (rsi > 60) trend = "📈 Forte rialzo";
         else if (rsi > 50) trend = "📈 Rialzista";
@@ -126,7 +125,7 @@ async function aggiornaDati() {
 
         document.getElementById("trend").value = trend;
 
-        // 🔥 SICUREZZA
+        // 🛡 Sicurezza
         let sicurezza = "";
         if (vix < 15) sicurezza = "🔥 MOLTO SICURO";
         else if (vix < 20) sicurezza = "✅ SICURO";
@@ -136,16 +135,16 @@ async function aggiornaDati() {
         document.getElementById("sicurezza").innerHTML =
             "<h2>🛡 Sicurezza</h2><p>"+sicurezza+"</p>";
 
-        // 🔥 ANALISI
+        // 📈 Analisi
         document.getElementById("analisi").innerHTML =
             "<h2>📈 Analisi</h2><p>Prezzo: "+prezzo+
             "<br>VIX: "+vix+
             "<br>RSI: "+rsi+"</p>";
 
-        // 🔥 SEGNALE
+        // 🤖 Segnale
         let segnale = "";
         if (trend.includes("rialzo") && vix < 20) {
-            segnale = "💰 VENDI PUT (strategia premium)";
+            segnale = "💰 VENDI PUT (condizioni buone)";
         } else {
             segnale = "⛔ ASPETTA";
         }
@@ -153,22 +152,22 @@ async function aggiornaDati() {
         document.getElementById("segnale").innerHTML =
             "<h2>🤖 Segnale</h2><p>"+segnale+"</p>";
 
-        // 🔥 CALCOLO STRIKE CONSIGLIATO
-        let strikeConsigliato = prezzo * 0.95;
+        // 🏆 Strike consigliato
+        let strike = prezzo * 0.95;
 
         document.getElementById("put").innerHTML =
             "<h2>🏆 Migliori PUT</h2>" +
-            "<p>Strike consigliato: <b>"+strikeConsigliato.toFixed(2)+"</b><br>" +
-            "Distanza sicurezza: 5%<br>" +
-            "Tipo: Cash Secured PUT</p>";
+            "<p>Strike consigliato: <b>"+strike.toFixed(2)+"</b><br>" +
+            "Distanza: 5%<br>" +
+            "Strategia: Cash Secured PUT</p>";
 
     } catch (error) {
-        alert("Errore nel recupero dati (proxy o API)");
+        alert("Errore dati (proxy momentaneamente non disponibile)");
         console.log(error);
     }
 }
 
-// AUTO REFRESH
+// auto refresh ogni 30 sec
 setInterval(aggiornaDati, 30000);
 
 // primo caricamento
