@@ -5,15 +5,54 @@
 <title>PUT Smart Dashboard</title>
 
 <style>
-body { background:#0f172a; color:white; font-family:Arial; }
-.container { max-width:1200px; margin:auto; padding:20px; }
-.grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-.box { background:#1e293b; padding:20px; border-radius:12px; }
-input, button { width:100%; padding:8px; margin:6px 0; border:none; border-radius:6px; }
-button { background:#22c55e; color:white; cursor:pointer; }
-.bar { height:20px; border-radius:10px; margin-top:10px; }
-h1 { margin-bottom:20px; }
+body {
+    background:#0f172a;
+    color:white;
+    font-family:Arial;
+}
+
+.container {
+    max-width:1200px;
+    margin:auto;
+    padding:20px;
+}
+
+.grid {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+}
+
+.box {
+    background:#1e293b;
+    padding:20px;
+    border-radius:12px;
+}
+
+input {
+    width:100%;
+    padding:10px;
+    margin:5px 0;
+    border-radius:6px;
+    border:none;
+}
+
+button {
+    width:100%;
+    padding:12px;
+    background:#22c55e;
+    border:none;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+    border-radius:6px;
+}
+
+h1 {
+    margin-bottom:10px;
+}
 </style>
+
 </head>
 
 <body>
@@ -27,191 +66,113 @@ h1 { margin-bottom:20px; }
 <div class="grid">
 
 <div class="box">
-<h2>📥 Dati</h2>
+<h2>📊 Dati</h2>
 <input id="symbol" value="SPY">
-<input id="S" placeholder="Prezzo">
-<input id="K" value="410">
-<input id="T" value="30">
-<input id="vol" placeholder="Volatilità (VIX)">
+<input id="prezzo" placeholder="Prezzo">
+<input id="strike" value="410">
+<input id="days" value="30">
+<input id="vix" placeholder="Volatilità (VIX)">
 <input id="rsi" placeholder="RSI">
 <input id="trend" placeholder="Trend">
 </div>
 
-<div class="box">
-<h2>🛡️ Sicurezza</h2>
-<div id="sicurezza"></div>
-<div id="bar" class="bar"></div>
+<div class="box" id="sicurezza">
+<h2>🛡 Sicurezza</h2>
 </div>
 
-<div class="box">
-<h2>📊 Analisi</h2>
-<div id="analisi"></div>
+<div class="box" id="analisi">
+<h2>📈 Analisi</h2>
 </div>
 
-<div class="box">
+<div class="box" id="segnale">
 <h2>🤖 Segnale</h2>
-<div id="signal"></div>
 </div>
 
-<div class="box">
+<div class="box" id="put">
 <h2>🏆 Migliori PUT</h2>
-<div id="best"></div>
 </div>
 
 </div>
 </div>
 
 <script>
+async function aggiornaDati() {
 
-// Normal distribution
-function erf(x){
-let sign = x>=0?1:-1;
-x=Math.abs(x);
-let a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
-let t=1/(1+p*x);
-let y=1-(((((a5*t+a4)*t+a3)*t+a2)*t+a1)*t*Math.exp(-x*x));
-return sign*y;
+    try {
+        // 🔥 SP500 (SPY)
+        const res = await fetch("https://api.allorigins.win/raw?url=https://query1.finance.yahoo.com/v7/finance/quote?symbols=SPY");
+        const data = await res.json();
+
+        const prezzo = data.quoteResponse.result[0].regularMarketPrice;
+        document.getElementById("prezzo").value = prezzo.toFixed(2);
+
+        // 🔥 VIX (VOLATILITÀ)
+        const vixRes = await fetch("https://api.allorigins.win/raw?url=https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5EVIX");
+        const vixData = await vixRes.json();
+
+        const vix = vixData.quoteResponse.result[0].regularMarketPrice;
+        document.getElementById("vix").value = vix.toFixed(2);
+
+        // 🔥 RSI (simulato migliorato)
+        const rsi = Math.floor(Math.random() * 30) + 40;
+        document.getElementById("rsi").value = rsi;
+
+        // 🔥 TREND
+        let trend = "";
+        if (rsi > 60) trend = "📈 Forte rialzo";
+        else if (rsi > 50) trend = "📈 Rialzista";
+        else if (rsi > 40) trend = "➡️ Laterale";
+        else trend = "📉 Ribassista";
+
+        document.getElementById("trend").value = trend;
+
+        // 🔥 SICUREZZA
+        let sicurezza = "";
+        if (vix < 15) sicurezza = "🔥 MOLTO SICURO";
+        else if (vix < 20) sicurezza = "✅ SICURO";
+        else if (vix < 25) sicurezza = "⚠️ ATTENZIONE";
+        else sicurezza = "❌ RISCHIOSO";
+
+        document.getElementById("sicurezza").innerHTML =
+            "<h2>🛡 Sicurezza</h2><p>"+sicurezza+"</p>";
+
+        // 🔥 ANALISI
+        document.getElementById("analisi").innerHTML =
+            "<h2>📈 Analisi</h2><p>Prezzo: "+prezzo+
+            "<br>VIX: "+vix+
+            "<br>RSI: "+rsi+"</p>";
+
+        // 🔥 SEGNALE
+        let segnale = "";
+        if (trend.includes("rialzo") && vix < 20) {
+            segnale = "💰 VENDI PUT (strategia premium)";
+        } else {
+            segnale = "⛔ ASPETTA";
+        }
+
+        document.getElementById("segnale").innerHTML =
+            "<h2>🤖 Segnale</h2><p>"+segnale+"</p>";
+
+        // 🔥 CALCOLO STRIKE CONSIGLIATO
+        let strikeConsigliato = prezzo * 0.95;
+
+        document.getElementById("put").innerHTML =
+            "<h2>🏆 Migliori PUT</h2>" +
+            "<p>Strike consigliato: <b>"+strikeConsigliato.toFixed(2)+"</b><br>" +
+            "Distanza sicurezza: 5%<br>" +
+            "Tipo: Cash Secured PUT</p>";
+
+    } catch (error) {
+        alert("Errore nel recupero dati (proxy o API)");
+        console.log(error);
+    }
 }
-function N(x){ return (1+erf(x/Math.sqrt(2)))/2; }
-
-
-// 🚀 DATI REALI (proxy che funziona su GitHub)
-async function aggiornaDati(){
-try {
-
-let symbol = document.getElementById("symbol").value;
-
-// SP500 (SPY)
-let res = await fetch(`https://api.allorigins.win/raw?url=https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}`);
-let data = await res.json();
-
-if(!data.quoteResponse.result.length){
-alert("Errore simbolo");
-return;
-}
-
-let S = data.quoteResponse.result[0].regularMarketPrice;
-document.getElementById("S").value = S.toFixed(2);
-
-// VIX
-let vixRes = await fetch(`https://api.allorigins.win/raw?url=https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5EVIX`);
-let vixData = await vixRes.json();
-
-let vix = vixData.quoteResponse.result[0].regularMarketPrice;
-document.getElementById("vol").value = vix.toFixed(2);
-
-// RSI simulato (stabile)
-let rsi = 50 + (Math.random()*20 - 10);
-document.getElementById("rsi").value = rsi.toFixed(2);
-
-// Trend
-let trend = rsi > 55 ? "BULLISH" : rsi < 45 ? "BEARISH" : "SIDEWAYS";
-document.getElementById("trend").value = trend;
-
-// Calcolo
-calcola();
-
-} catch (err) {
-console.log(err);
-alert("Errore nel recupero dati (CORS o API)");
-}
-}
-
-
-// 📊 CALCOLO
-function calcola(){
-
-let S = +document.getElementById("S").value;
-let K = +document.getElementById("K").value;
-let T = +document.getElementById("T").value / 365;
-let vol = +document.getElementById("vol").value / 100;
-let rsi = +document.getElementById("rsi").value;
-let trend = document.getElementById("trend").value;
-
-// distanza
-let distanza = ((S-K)/S)*100;
-
-// probabilità
-let d2 = (Math.log(S/K)-0.5*vol*vol*T)/(vol*Math.sqrt(T));
-let probSafe = 1 - N(-d2);
-
-// sicurezza
-let stato = distanza > 5 ? "🟢 Safe" : distanza > 3 ? "🟡 Medio" : "🔴 Rischio";
-
-// barra
-let risk = 100 - distanza*10;
-risk = Math.max(0, Math.min(100, risk));
-
-let bar = document.getElementById("bar");
-bar.style.width = risk+"%";
-bar.style.background = risk > 60 ? "red" : risk > 30 ? "orange" : "green";
-
-// segnale
-let signal = "⚠️ WAIT";
-
-if(trend==="BULLISH" && rsi < 65 && probSafe > 0.7){
-signal = "🟢 SELL PUT";
-}
-else if(rsi > 70){
-signal = "🔴 NO TRADE";
-}
-
-// output
-document.getElementById("sicurezza").innerHTML = `
-Distanza: ${distanza.toFixed(2)}%<br>${stato}
-`;
-
-document.getElementById("analisi").innerHTML = `
-Probabilità SAFE: ${(probSafe*100).toFixed(2)}%<br>
-RSI: ${rsi}<br>
-Trend: ${trend}<br>
-Vol (VIX): ${(vol*100).toFixed(2)}%
-`;
-
-document.getElementById("signal").innerHTML = `<h2>${signal}</h2>`;
-
-// migliori put
-trovaPut(S, vol, T, rsi);
-}
-
-
-// 🏆 TROVA PUT
-function trovaPut(S, vol, T, rsi){
-
-let risultati = [];
-
-for(let i=1;i<=10;i++){
-
-let K = S*(1 - i*0.01);
-let distanza = ((S-K)/S)*100;
-
-let d2 = (Math.log(S/K)-0.5*vol*vol*T)/(vol*Math.sqrt(T));
-let probSafe = 1 - N(-d2);
-
-let score = (probSafe*100) - distanza*2 + (rsi<40?10:0);
-
-risultati.push({
-strike: K.toFixed(0),
-prob: (probSafe*100).toFixed(1),
-dist: distanza.toFixed(2),
-score: score
-});
-}
-
-risultati.sort((a,b)=>b.score-a.score);
-
-let html="";
-risultati.slice(0,3).forEach(p=>{
-html+=`<div><b>${p.strike}</b> | ${p.prob}% | ${p.dist}%</div>`;
-});
-
-document.getElementById("best").innerHTML = html;
-}
-
 
 // AUTO REFRESH
 setInterval(aggiornaDati, 30000);
 
+// primo caricamento
+aggiornaDati();
 </script>
 
 </body>
