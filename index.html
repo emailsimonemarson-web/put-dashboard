@@ -63,7 +63,7 @@ h1 { margin-bottom:20px; }
 
 <script>
 
-// NORMAL DISTRIBUTION
+// Normal distribution
 function erf(x){
 let sign = x>=0?1:-1;
 x=Math.abs(x);
@@ -75,42 +75,50 @@ return sign*y;
 function N(x){ return (1+erf(x/Math.sqrt(2)))/2; }
 
 
-// 🔄 DATI AUTOMATICI
+// 🚀 DATI REALI (proxy che funziona su GitHub)
 async function aggiornaDati(){
 try {
 
 let symbol = document.getElementById("symbol").value;
 
-// 📊 PREZZO SP500
-let res = await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}`);
+// SP500 (SPY)
+let res = await fetch(`https://api.allorigins.win/raw?url=https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}`);
 let data = await res.json();
+
+if(!data.quoteResponse.result.length){
+alert("Errore simbolo");
+return;
+}
+
 let S = data.quoteResponse.result[0].regularMarketPrice;
 document.getElementById("S").value = S.toFixed(2);
 
-// 📉 VIX
-let vixRes = await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5EVIX`);
+// VIX
+let vixRes = await fetch(`https://api.allorigins.win/raw?url=https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5EVIX`);
 let vixData = await vixRes.json();
+
 let vix = vixData.quoteResponse.result[0].regularMarketPrice;
 document.getElementById("vol").value = vix.toFixed(2);
 
-// 🔢 RSI (simulato realistico)
+// RSI simulato (stabile)
 let rsi = 50 + (Math.random()*20 - 10);
 document.getElementById("rsi").value = rsi.toFixed(2);
 
-// 📈 TREND
+// Trend
 let trend = rsi > 55 ? "BULLISH" : rsi < 45 ? "BEARISH" : "SIDEWAYS";
 document.getElementById("trend").value = trend;
 
-// CALCOLO
+// Calcolo
 calcola();
 
 } catch (err) {
-console.log("Errore:", err);
+console.log(err);
+alert("Errore nel recupero dati (CORS o API)");
 }
 }
 
 
-// 📊 CALCOLO PRINCIPALE
+// 📊 CALCOLO
 function calcola(){
 
 let S = +document.getElementById("S").value;
@@ -138,17 +146,17 @@ let bar = document.getElementById("bar");
 bar.style.width = risk+"%";
 bar.style.background = risk > 60 ? "red" : risk > 30 ? "orange" : "green";
 
-// SEGNALE
+// segnale
 let signal = "⚠️ WAIT";
 
 if(trend==="BULLISH" && rsi < 65 && probSafe > 0.7){
-  signal = "🟢 SELL PUT";
+signal = "🟢 SELL PUT";
 }
 else if(rsi > 70){
-  signal = "🔴 NO TRADE";
+signal = "🔴 NO TRADE";
 }
 
-// OUTPUT
+// output
 document.getElementById("sicurezza").innerHTML = `
 Distanza: ${distanza.toFixed(2)}%<br>${stato}
 `;
@@ -157,7 +165,7 @@ document.getElementById("analisi").innerHTML = `
 Probabilità SAFE: ${(probSafe*100).toFixed(2)}%<br>
 RSI: ${rsi}<br>
 Trend: ${trend}<br>
-Vol: ${(vol*100).toFixed(2)}%
+Vol (VIX): ${(vol*100).toFixed(2)}%
 `;
 
 document.getElementById("signal").innerHTML = `<h2>${signal}</h2>`;
@@ -167,7 +175,7 @@ trovaPut(S, vol, T, rsi);
 }
 
 
-// 🏆 TROVA MIGLIORI PUT
+// 🏆 TROVA PUT
 function trovaPut(S, vol, T, rsi){
 
 let risultati = [];
